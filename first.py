@@ -1,9 +1,7 @@
 from tensorflow.contrib.data.python.ops import sliding
 import numpy as np
 import tensorflow as tf
-#import gc
 import cv2
-#import matplotlib.pyplot as plt
 from tensorflow.python.framework import ops
 from os import listdir
 from os.path import isfile, join
@@ -206,6 +204,7 @@ def decoder_norm(pix_lstm):
             pixel_4 = conv_block(pixel_3,[3,3],filter_numbers=4,stride=[1,2,2,1],nonlinearity=non_lin,conv_t="dconv")
         with tf.variable_scope("dconv5") as scope:
             pixel_5 = conv_blc_lst(pixel_4,[3,3],filter_numbers=1,stride=[1,2,2,1],nonlinearity="none",conv_t="dconv")
+            #pixel_5 = conv_block(pixel_4,[3,3],filter_numbers=1,stride=[1,2,2,1],nonlinearity="none",conv_t="dconv")
 
 
         return pixel_5
@@ -343,13 +342,12 @@ def conv_lstm(pixel,state,memory):
             one_o = tf.nn.conv2d(pixel,W_ox,strides=[1,1,1,1],padding="SAME",name="convo_1")
             two_o = tf.nn.conv2d(state,W_oh,strides=[1,1,1,1],padding="SAME",name="convo_2")
 
-            output_gate = tf.sigmoid(tf.add(tf.add(tf.add(one_o,two_o),B_o),tf.multiply(W_oc,memory_curr)))
+            output_gate = tf.sigmoid(tf.add(tf.add(tf.add(one_o,two_o),B_o),
+                          tf.multiply(W_oc,memory_curr)))
 
 
         state_curr = tf.multiply(output_gate,tf.nn.tanh(memory_curr))
-
         #pixel_out = tf.sigmoid(state_curr)
-
 
         tf.summary.histogram("weights_input_gate_input", W_ix)
         tf.summary.histogram("weights_input_gate_state", W_ih)
@@ -357,13 +355,11 @@ def conv_lstm(pixel,state,memory):
         tf.summary.histogram("biases_input_gate", B_i)
         #tf.summary.histogram("activations_input_gate", input_gate)
 
-
         tf.summary.histogram("weights_forget_gate_input", W_fx)
         tf.summary.histogram("weights_forget_gate_state", W_fh)
         tf.summary.histogram("weights_memory_forget", W_fc)
         tf.summary.histogram("biases_forget_gate", B_f)
         #tf.summary.histogram("activations_forget_gate", forget_gate)
-
 
         tf.summary.histogram("weights_output_gate_input", W_ox)
         tf.summary.histogram("weights_output_gate_state", W_oh)
@@ -375,75 +371,44 @@ def conv_lstm(pixel,state,memory):
         tf.summary.histogram("weights_memory_cand_state", W_ch)
         tf.summary.histogram("biases_memory_cand", B_c)
 
-
-
-
         return state_curr,memory_curr
-
-
-'''
-def lstm_block(pixel_0,pixel_1,pixel_2,pixel_3):
-
-    with tf.name_scope("convlstm_1") as scope:
-        null_state = tf.zeros([pixel_0.get_shape()[0],pixel_0.get_shape()[1],pixel_0.get_shape()[2],pixel_0.get_shape()[3]])
-        null_mem = tf.zeros([pixel_0.get_shape()[0],pixel_0.get_shape()[1],pixel_0.get_shape()[2],pixel_0.get_shape()[3]])
-
-        state_1,memory_1,out_1 = conv_lstm(pixel_0,null_state,null_mem)
-
-    with tf.name_scope("convlstm_2") as scope:
-
-        state_2,memory_2,out_2 = conv_lstm(pixel_1,state_1,memory_1)
-
-    with tf.name_scope("convlstm_3") as scope:
-
-        state_3,memory_3,out_3 = conv_lstm(pixel_2,state_2,memory_2)
-
-    with tf.name_scope("convlstm_4") as scope:
-
-        state_4,memory_4,out_4 = conv_lstm(pixel_3,state_3,memory_3)
-
-    with tf.name_scope("convlstm_5") as scope:
-
-        state_5,memory_5,out_5 = conv_lstm(out_4,state_3,memory_3)
-
-    return out_5
-'''
 
 
 def lstm_block(pixel_0,pixel_1,pixel_2,pixel_3,pixel_4):
 
     gt_5 = encoder(pixel_4,skip="nope")
 
-    with tf.variable_scope("conv_lstm",reuse=tf.AUTO_REUSE) as scope:
+    #with tf.variable_scope("conv_lstm") as scope: #excluding reuse
 
-        with tf.name_scope("convlstm_1") as scope:
-            null_state = tf.zeros([pixel_0.get_shape()[0],pixel_0.get_shape()[1],pixel_0.get_shape()[2],pixel_0.get_shape()[3]])
-            null_mem = tf.zeros([pixel_0.get_shape()[0],pixel_0.get_shape()[1],pixel_0.get_shape()[2],pixel_0.get_shape()[3]])
+    with tf.name_scope("convlstm_1") as scope:
+        null_state = tf.zeros([pixel_0.get_shape()[0],pixel_0.get_shape()[1],
+                     pixel_0.get_shape()[2],pixel_0.get_shape()[3]])
+        null_mem = tf.zeros([pixel_0.get_shape()[0],pixel_0.get_shape()[1],
+                   pixel_0.get_shape()[2],pixel_0.get_shape()[3]])
 
-            state_1,memory_1 = conv_lstm(pixel_0,null_state,null_mem)
+        state_1,memory_1 = conv_lstm(pixel_0,null_state,null_mem)
 
-        with tf.name_scope("convlstm_2") as scope:
+    with tf.name_scope("convlstm_2") as scope:
 
-            state_2,memory_2 = conv_lstm(pixel_1,state_1,memory_1)
+        state_2,memory_2 = conv_lstm(pixel_1,state_1,memory_1)
 
-        with tf.name_scope("convlstm_3") as scope:
+    with tf.name_scope("convlstm_3") as scope:
 
-            state_3,memory_3 = conv_lstm(pixel_2,state_2,memory_2)
+        state_3,memory_3 = conv_lstm(pixel_2,state_2,memory_2)
 
-        with tf.name_scope("convlstm_4") as scope:
+    with tf.name_scope("convlstm_4") as scope:
 
-            state_4,memory_4 = conv_lstm(pixel_3,state_3,memory_3)
+        state_4,memory_4 = conv_lstm(pixel_3,state_3,memory_3)
 
-        with tf.name_scope("convlstm_5") as scope:
-            #null_pixel = tf.zeros([pixel_0.get_shape()[0],pixel_0.get_shape()[1],pixel_0.get_shape()[2],pixel_0.get_shape()[3]])
+    with tf.name_scope("convlstm_5") as scope:
+        #null_pixel = tf.zeros([pixel_0.get_shape()[0],pixel_0.get_shape()[1],pixel_0.get_shape()[2],pixel_0.get_shape()[3]])
+        state_5,memory_5 = conv_lstm(state_4,state_4,memory_4)
 
-            state_5,memory_5 = conv_lstm(state_4,state_4,memory_4)
+    with tf.name_scope("convlstm_6") as scope:
 
-        with tf.name_scope("convlstm_6") as scope:
+        state_6,memory_6 = conv_lstm(gt_5,state_5,memory_5)
 
-            state_6,memory_6 = conv_lstm(gt_5,state_5,memory_5)
-
-        return state_5,state_6
+    return state_5,state_6
 
 '''def cost(pixel_pre,pixel_gt):
     with tf.name_scope("cost") as scope:
@@ -471,8 +436,9 @@ def cost(pixel_pre1,pixel_pre2,pixel_gt1,pixel_gt2,pera_1,pera_2):
 
         return total_loss
 
-def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,decode_l,pera_1,pera_2,imp_skip,
-         batch):
+def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,decode_l,
+            pera_1,pera_2,imp_skip,batch):
+
     tf.summary.scalar('learning_rate',learning_rate)
     tf.summary.scalar('batch_size',mini_size)
     tf.summary.scalar('epoch_num',num_epochs)
@@ -489,12 +455,12 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
 
     dataset = tf.data.TFRecordDataset(filenames)
     dataset = dataset.map(_parse_function)
-    dataset = dataset.repeat(num_epochs)
     window = mini_size
     #stride = 1
     dataset = dataset.apply(sliding.sliding_window_batch(window,stride=6))
-    dataset = dataset.shuffle(500)
     dataset = dataset.batch(batch,drop_remainder=True)
+    dataset = dataset.shuffle(500)
+    dataset = dataset.repeat(num_epochs)
     #dataset = dataset.shuffle(500)
     #iterator =  tf.data.Iterator.from_structure(dataset.output_types,dataset.output_shapes)
     iterator = dataset.make_initializable_iterator(shared_name="iter")
@@ -502,7 +468,8 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
     pix_gt = iterator.get_next()
     #print(pix_gt.get_shape().as_list())
     #print(tf.shape(pix_gt))
-    spli0, spli1, spli2, spli3, spli4, spli5 = tf.split(pix_gt, num_or_size_splits=batch, axis=0)
+    spli0, spli1, spli2, spli3, spli4, spli5 = tf.split(pix_gt,num_or_size_splits=batch,axis=0)
+
     spli0 = tf.reshape(spli0,[mini_size,256,256,1])
     spli1 = tf.reshape(spli1,[mini_size,256,256,1])
     spli2 = tf.reshape(spli2,[mini_size,256,256,1])
@@ -510,16 +477,9 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
     spli4 = tf.reshape(spli4,[mini_size,256,256,1])
     spli5 = tf.reshape(spli5,[mini_size,256,256,1])
 
-    #print(spli0.get_shape().as_list())
-
     pix_gt1 = tf.stack([spli0, spli1, spli2, spli3, spli4, spli5], axis=1)
-    #print(pix_gt1.get_shape())
-    #pix_gt = tf.reshape(pix_gt,[mini_size,batch,256,256,1])
-
-    #split0, split1, split2, split3, split4 = tf.split(pix_gt, num_or_size_splits=5, axis=0)
-    #split0, split1, split2, split3, split4, split5 = tf.split(pix_gt, num_or_size_splits=6, axis=0)
-    split0, split1, split2, split3, split4, split5 = tf.split(pix_gt1, num_or_size_splits=mini_size, axis=0)
-
+    split0, split1, split2, split3, split4, split5 = tf.split(pix_gt1,
+                                        num_or_size_splits=mini_size, axis=0)
 
     pix_0 = tf.reshape(split0,[batch,256,256,1])
     pix_1 = tf.reshape(split1,[batch,256,256,1])
@@ -535,16 +495,10 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
     tf.summary.image("input_5",pix_4,3)
     tf.summary.image("input_6",pix_5,3)
 
-
-    #pix_0 = tf.reshape(pix_gt,[mini_size,256,256,1])
-    #pix_0 = tf.reshape(pix_gt,[mini_size,256,256,1])
-    #pix_0 = tf.reshape(pix_gt,[mini_size,256,256,1])
-
     out_1,out_2,out_3,out_4,two_pix,two_pixel_1,two_pixel_2,two_pixel_3,two_pixel_4,two_pixel_5 = encoder_block(pix_0,pix_1,pix_2,pix_3)
 
     #out_5 = lstm_block(out_1,out_2,out_3,out_4,)
     out_5,out_6 = lstm_block(out_1,out_2,out_3,out_4,pix_4)
-
 
     out_pre,out_pre1 = decoder_block(out_5,out_6,two_pixel_5,two_pixel_4,two_pixel_3,two_pixel_2,two_pixel_1,two_pix,
                           skip_try="oka")
@@ -562,15 +516,16 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
     file_writer = tf.summary.FileWriter(logdir, tf.get_default_graph())
 
     saver = tf.train.Saver()
+
     init = tf.global_variables_initializer()
 
     sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
 
 
-    #sess.run(init)
-    saver.restore(sess,('/media/antor/Files/main_projects/gitlab/unet_check/tf_models/run-20181104123103/my_model.ckpt'))
+    sess.run(init)
+    #saver.restore(sess,('/media/antor/Files/main_projects/gitlab/unet_check/tf_models/run-20181104123103/my_model.ckpt'))
 
-    sess.run(iterator.initializer,feed_dict={filenames:"/media/antor/Files/ML/Papers/train_rnn_d.tfrecords"})
+    sess.run(iterator.initializer,feed_dict={filenames:"/media/antor/Files/ML/Papers/tfrecord/train_rnn_d.tfrecords"})
 
     mini_cost = 0.0
     counter = 1
@@ -617,9 +572,6 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
                 #print(coun)
                 coun+=1
 
-
-
-
         except tf.errors.OutOfRangeError:
             print(counter)
             saver.save(sess,logdir_m+"my_model.ckpt")
@@ -651,7 +603,7 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
 
 
 
-            if counter%200== 0:
+            if counter%100== 0:
                 s = sess.run(merge_sum)
                 file_writer.add_summary(s,counter)
 
@@ -660,7 +612,7 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
 
             if counter%5000==0:
                 print("cost after epoch " + str(epoch) + ": " + str(epoch_cost))
-                saver.save(sess,logdir_m+"my_model.ckpt")
+                #saver.save(sess,logdir_m+"my_model.ckpt")
                 epoch_cost =0.0
                 epoch+=1
 
@@ -673,7 +625,7 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
 
         except tf.errors.OutOfRangeError:
             #print(counter)
-            saver.save(sess,logdir_m+"my_model.ckpt")
+            #saver.save(sess,logdir_m+"my_model.ckpt")
             break
     sess.close()
 
@@ -697,5 +649,5 @@ for l in i:
     ops.reset_default_graph()
 '''
 
-model(learning_rate=.0005,num_epochs=50,mini_size=6,pt_out=200,break_t=1000,fil_conv=48,kernel_ls=3,decode_l=2,
+model(learning_rate=.0005,num_epochs=1,mini_size=6,pt_out=100,break_t=1000,fil_conv=48,kernel_ls=3,decode_l=2,
        pera_1=1,pera_2=1,imp_skip=26,batch=6)
