@@ -457,8 +457,9 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
     window = mini_size
     #stride = 1
     dataset = dataset.apply(sliding.sliding_window_batch(window,stride=6))
-    dataset = dataset.batch(batch,drop_remainder=True)
     dataset = dataset.shuffle(500)
+    dataset = dataset.batch(batch,drop_remainder=True)
+
     dataset = dataset.repeat(num_epochs)
     #dataset = dataset.shuffle(500)
     #iterator =  tf.data.Iterator.from_structure(dataset.output_types,dataset.output_shapes)
@@ -524,7 +525,7 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
     sess.run(init)
     #saver.restore(sess,('/media/antor/Files/main_projects/gitlab/unet_check/tf_models/run-20181104123103/my_model.ckpt'))
 
-    sess.run(iterator.initializer,feed_dict={filenames:"/media/antor/Files/ML/Papers/tfrecord/train_rnn_d.tfrecords"})
+    sess.run(iterator.initializer,feed_dict={filenames:"/media/antor/Files/ML/tfrecord/sir_demo/train.tfrecords"})
 
     mini_cost = 0.0
     counter = 1
@@ -643,5 +644,5 @@ for l in i:
     ops.reset_default_graph()
 '''
 
-model(learning_rate=.0005,num_epochs=1,mini_size=6,pt_out=100,break_t=1000,fil_conv=48,
+model(learning_rate=.0005,num_epochs=20,mini_size=6,pt_out=100,break_t=1000,fil_conv=48,
         kernel_ls=3,decode_l=2,pera_1=1,pera_2=1,imp_skip=26,batch=6)
