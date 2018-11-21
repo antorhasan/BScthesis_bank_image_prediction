@@ -433,7 +433,6 @@ def cost(pixel_pre1,pixel_pre2,pixel_gt1,pixel_gt2,pera_1,pera_2):
 
         tf.summary.scalar('loss',total_loss)
 
-
         return total_loss
 
 def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,decode_l,
@@ -576,7 +575,6 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
             print(counter)
             saver.save(sess,logdir_m+"my_model.ckpt")
             break
-
      '''
 
     while True:
@@ -601,8 +599,6 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
                 print("mini batch cost of batch " + str(counter) + " is : " + str(mini_cost))
                 mini_cost =0.0
 
-
-
             if counter%100== 0:
                 s = sess.run(merge_sum)
                 file_writer.add_summary(s,counter)
@@ -619,8 +615,6 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
             counter+=1
             #print(coun)
             coun+=1
-
-
 
 
         except tf.errors.OutOfRangeError:
@@ -649,5 +643,5 @@ for l in i:
     ops.reset_default_graph()
 '''
 
-model(learning_rate=.0005,num_epochs=1,mini_size=6,pt_out=100,break_t=1000,fil_conv=48,kernel_ls=3,decode_l=2,
-       pera_1=1,pera_2=1,imp_skip=26,batch=6)
+model(learning_rate=.0005,num_epochs=1,mini_size=6,pt_out=100,break_t=1000,fil_conv=48,
+        kernel_ls=3,decode_l=2,pera_1=1,pera_2=1,imp_skip=26,batch=6)
