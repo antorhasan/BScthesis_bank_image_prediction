@@ -347,7 +347,7 @@ def conv_lstm(pixel,state,memory):
 
 
         state_curr = tf.multiply(output_gate,tf.nn.tanh(memory_curr))
-        #pixel_out = tf.sigmoid(state_curr)
+        pix_curr = tf.nn.relu(state_curr, name="conv_relu")
 
         tf.summary.histogram("weights_input_gate_input", W_ix)
         tf.summary.histogram("weights_input_gate_state", W_ih)
@@ -371,7 +371,7 @@ def conv_lstm(pixel,state,memory):
         tf.summary.histogram("weights_memory_cand_state", W_ch)
         tf.summary.histogram("biases_memory_cand", B_c)
 
-        return state_curr,memory_curr
+        return state_curr,memory_curr,pix_curr
 
 
 def lstm_block(pixel_0,pixel_1,pixel_2,pixel_3,pixel_4):
@@ -386,27 +386,27 @@ def lstm_block(pixel_0,pixel_1,pixel_2,pixel_3,pixel_4):
         null_mem = tf.zeros([pixel_0.get_shape()[0],pixel_0.get_shape()[1],
                    pixel_0.get_shape()[2],pixel_0.get_shape()[3]])
 
-        state_1,memory_1 = conv_lstm(pixel_0,null_state,null_mem)
+        state_1,memory_1,pix_1 = conv_lstm(pixel_0,null_state,null_mem)
 
     with tf.name_scope("convlstm_2") as scope:
 
-        state_2,memory_2 = conv_lstm(pixel_1,state_1,memory_1)
+        state_2,memory_2,pix_2 = conv_lstm(pixel_1,state_1,memory_1)
 
     with tf.name_scope("convlstm_3") as scope:
 
-        state_3,memory_3 = conv_lstm(pixel_2,state_2,memory_2)
+        state_3,memory_3,pix_3 = conv_lstm(pixel_2,state_2,memory_2)
 
     with tf.name_scope("convlstm_4") as scope:
 
-        state_4,memory_4 = conv_lstm(pixel_3,state_3,memory_3)
+        state_4,memory_4,pix_4 = conv_lstm(pixel_3,state_3,memory_3)
 
     with tf.name_scope("convlstm_5") as scope:
         #null_pixel = tf.zeros([pixel_0.get_shape()[0],pixel_0.get_shape()[1],pixel_0.get_shape()[2],pixel_0.get_shape()[3]])
-        state_5,memory_5 = conv_lstm(null_state,state_4,memory_4)
+        state_5,memory_5,pix_5 = conv_lstm(pix_4,state_4,memory_4)
 
     with tf.name_scope("convlstm_6") as scope:
 
-        state_6,memory_6 = conv_lstm(gt_5,state_5,memory_5)
+        state_6,memory_6,pix_6 = conv_lstm(gt_5,state_5,memory_5)
 
     return state_5,state_6
 
