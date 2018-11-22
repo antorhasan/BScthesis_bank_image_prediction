@@ -402,7 +402,7 @@ def lstm_block(pixel_0,pixel_1,pixel_2,pixel_3,pixel_4):
 
     with tf.name_scope("convlstm_5") as scope:
         #null_pixel = tf.zeros([pixel_0.get_shape()[0],pixel_0.get_shape()[1],pixel_0.get_shape()[2],pixel_0.get_shape()[3]])
-        state_5,memory_5 = conv_lstm(state_4,state_4,memory_4)
+        state_5,memory_5 = conv_lstm(null_state,state_4,memory_4)
 
     with tf.name_scope("convlstm_6") as scope:
 
