@@ -402,13 +402,13 @@ def lstm_block(pixel_0,pixel_1,pixel_2,pixel_3,pixel_4):
 
     with tf.name_scope("convlstm_5") as scope:
         #null_pixel = tf.zeros([pixel_0.get_shape()[0],pixel_0.get_shape()[1],pixel_0.get_shape()[2],pixel_0.get_shape()[3]])
-        state_5,memory_5,pix_5 = conv_lstm(pix_4,state_4,memory_4)
+        state_5,memory_5,pix_5 = conv_lstm(null_state,state_4,memory_4)
 
     with tf.name_scope("convlstm_6") as scope:
-
+        #if 
         state_6,memory_6,pix_6 = conv_lstm(gt_5,state_5,memory_5)
 
-    return state_5,state_6
+    return pix_5,pix_6
 
 '''def cost(pixel_pre,pixel_gt):
     with tf.name_scope("cost") as scope:
@@ -512,6 +512,8 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
 
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate,name="adam").minimize(loss)
 
+
+
     merge_sum = tf.summary.merge_all()
     file_writer = tf.summary.FileWriter(logdir, tf.get_default_graph())
 
@@ -609,7 +611,7 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
 
             if counter%5000==0:
                 print("cost after epoch " + str(epoch) + ": " + str(epoch_cost))
-                #saver.save(sess,logdir_m+"my_model.ckpt")
+                saver.save(sess,logdir_m+"my_model.ckpt")
                 epoch_cost =0.0
                 epoch+=1
 
@@ -644,5 +646,5 @@ for l in i:
     ops.reset_default_graph()
 '''
 
-model(learning_rate=.0005,num_epochs=20,mini_size=6,pt_out=100,break_t=1000,fil_conv=48,
+model(learning_rate=.0005,num_epochs=200,mini_size=6,pt_out=100,break_t=1000,fil_conv=48,
         kernel_ls=3,decode_l=2,pera_1=1,pera_2=1,imp_skip=26,batch=6)
