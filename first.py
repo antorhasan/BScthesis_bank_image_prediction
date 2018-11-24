@@ -374,7 +374,7 @@ def conv_lstm(pixel,state,memory):
         return state_curr,memory_curr,pix_curr
 
 
-def lstm_block(pixel_0,pixel_1,pixel_2,pixel_3,pixel_4):
+def lstm_block(pixel_0,pixel_1,pixel_2,pixel_3,pixel_4, decide):
 
     gt_5 = encoder(pixel_4,skip="nope")
 
@@ -405,8 +405,13 @@ def lstm_block(pixel_0,pixel_1,pixel_2,pixel_3,pixel_4):
         state_5,memory_5,pix_5 = conv_lstm(null_state,state_4,memory_4)
 
     with tf.name_scope("convlstm_6") as scope:
-        #if 
-        state_6,memory_6,pix_6 = conv_lstm(gt_5,state_5,memory_5)
+
+        state_6,memory_6,pix_6 = tf.cond(tf.cast(decide,tf.bool), lambda:conv_lstm(gt_5,state_5,memory_5),
+                                    lambda:conv_lstm(pix_5,state_5,memory_5))
+        # if decide == "train":
+        #     state_6,memory_6,pix_6 = conv_lstm(gt_5,state_5,memory_5)
+        # elif decide == "dev":
+        #     state_6,memory_6,pix_6 = conv_lstm(pix_5,state_5,memory_5)
 
     return pix_5,pix_6
 
@@ -450,22 +455,40 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
 
 
 
-    filenames = tf.placeholder(tf.string)
+    #filenames = tf.placeholder(tf.string)
+    decision = tf.placeholder(tf.bool)
+    #epo_num = tf.placeholder(tf.constant)
 
-    dataset = tf.data.TFRecordDataset(filenames)
+    dataset = tf.data.TFRecordDataset("/media/antor/Files/ML/tfrecord/sir_demo/train.tfrecords")
     dataset = dataset.map(_parse_function)
     window = mini_size
     #stride = 1
     dataset = dataset.apply(sliding.sliding_window_batch(window,stride=6))
     dataset = dataset.shuffle(500)
     dataset = dataset.batch(batch,drop_remainder=True)
-
     dataset = dataset.repeat(num_epochs)
-    #dataset = dataset.shuffle(500)
-    #iterator =  tf.data.Iterator.from_structure(dataset.output_types,dataset.output_shapes)
-    iterator = dataset.make_initializable_iterator(shared_name="iter")
+
+    dataset_v = tf.data.TFRecordDataset("/media/antor/Files/ML/tfrecord/sir_demo/dev.tfrecords")
+    dataset_v = dataset_v.map(_parse_function)
+    window = mini_size
+    dataset_v = dataset_v.apply(sliding.sliding_window_batch(window,stride=6))
+    dataset_v = dataset_v.batch(batch,drop_remainder=True)
+    dataset_v = dataset_v.repeat(num_epochs)
+
+    #iterator = dataset.make_initializable_iterator(shared_name="iter")
+    #handle = tf.placeholder(tf.string, shape=[])
+    handle = tf.placeholder(tf.string)
+
+    iterator = tf.data.Iterator.from_string_handle(handle, dataset.output_types)
 
     pix_gt = iterator.get_next()
+
+    # training_iterator = dataset.make_one_shot_iterator()
+    # validation_iterator = dataset_v.make_one_shot_iterator()
+
+    training_iterator = dataset.make_initializable_iterator()
+    validation_iterator = dataset.make_initializable_iterator()
+
     #print(pix_gt.get_shape().as_list())
     #print(tf.shape(pix_gt))
     spli0, spli1, spli2, spli3, spli4, spli5 = tf.split(pix_gt,num_or_size_splits=batch,axis=0)
@@ -498,7 +521,7 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
     out_1,out_2,out_3,out_4,two_pix,two_pixel_1,two_pixel_2,two_pixel_3,two_pixel_4,two_pixel_5 = encoder_block(pix_0,pix_1,pix_2,pix_3)
 
     #out_5 = lstm_block(out_1,out_2,out_3,out_4,)
-    out_5,out_6 = lstm_block(out_1,out_2,out_3,out_4,pix_4)
+    out_5,out_6 = lstm_block(out_1,out_2,out_3,out_4,pix_4,decision)
 
     out_pre,out_pre1 = decoder_block(out_5,out_6,two_pixel_5,two_pixel_4,two_pixel_3,two_pixel_2,two_pixel_1,two_pix,
                           skip_try="oka")
@@ -515,7 +538,8 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
 
 
     merge_sum = tf.summary.merge_all()
-    file_writer = tf.summary.FileWriter(logdir, tf.get_default_graph())
+    file_writer_t = tf.summary.FileWriter(logdir, tf.get_default_graph())
+    file_writer_v = tf.summary.FileWriter(logdir, tf.get_default_graph())
 
     saver = tf.train.Saver()
 
@@ -527,93 +551,73 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
     sess.run(init)
     #saver.restore(sess,('/media/antor/Files/main_projects/gitlab/unet_check/tf_models/run-20181104123103/my_model.ckpt'))
 
-    sess.run(iterator.initializer,feed_dict={filenames:"/media/antor/Files/ML/tfrecord/sir_demo/train.tfrecords"})
+    #sess.run(iterator.initializer,feed_dict={filenames:"/media/antor/Files/ML/tfrecord/sir_demo/train.tfrecords",
+    #                                            decision:"train", epo_num:num_epochs})
+
+    sess.run(training_iterator.initializer)
+    sess.run(validation_iterator.initializer)
+    training_handle = sess.run(training_iterator.string_handle())
+    validation_handle = sess.run(validation_iterator.string_handle())
+
+
 
     mini_cost = 0.0
     counter = 1
     coun = 1
     epoch_cost = 0.0
-    epoch = 0
-    '''
+    epoch = 1
+    epoch_cost_v = 0.0
+    counter_v = 0
 
     while True:
         try:
-
-            if coun in range(imp_skip,31):
-                dump_loss = sess.run(loss)
-                #print(coun)
-                if coun==30:
-                    coun=0
-                coun+=1
-
-            else:
-                _ , temp_cost = sess.run([optimizer,loss])
-                mini_cost += temp_cost/pt_out
-                epoch_cost += temp_cost/8200
-
-                if counter%pt_out==0:
-                    print("mini batch cost of batch " + str(counter) + " is : " + str(mini_cost))
-                    mini_cost =0.0
-
-
-
-                if counter%100 == 0:
-                    s = sess.run(merge_sum)
-                    file_writer.add_summary(s,counter)
-
-                #if counter*mini_size>=break_t:
-                 #   break
-
-                if counter%10000==0:
-                    print("cost after epoch " + str(epoch) + ": " + str(epoch_cost))
-                    saver.save(sess,logdir_m+"my_model.ckpt")
-                    epoch_cost =0.0
-                    epoch+=1
-
-                counter+=1
-                #print(coun)
-                coun+=1
-
-        except tf.errors.OutOfRangeError:
-            print(counter)
-            saver.save(sess,logdir_m+"my_model.ckpt")
-            break
-     '''
-
-    while True:
-        try:
-            '''
-            #if coun in range(imp_skip,31):
-            #if coun==5:
-
-                dump_loss = sess.run(loss)
-                #print(coun)
-                #if coun==30:
-                coun=0
-                coun+=1
-
-            else:
-            '''
-            _ , temp_cost = sess.run([optimizer,loss])
+            _ , temp_cost = sess.run([optimizer,loss],feed_dict={handle : training_handle, decision:True})
             mini_cost += temp_cost/pt_out
-            epoch_cost += temp_cost/5000
+            epoch_cost += temp_cost/288
 
-            if counter%pt_out==0:
-                print("mini batch cost of batch " + str(counter) + " is : " + str(mini_cost))
-                mini_cost =0.0
+            #if counter%pt_out==0:
+            #    print("mini batch cost of batch " + str(counter) + " is : " + str(mini_cost))
+            #    mini_cost =0.0
 
-            if counter%100== 0:
-                s = sess.run(merge_sum)
-                file_writer.add_summary(s,counter)
+            #if counter%100== 0:
+            #    s = sess.run(merge_sum)
+            #    file_writer.add_summary(s,counter)
 
             #if counter*mini_size>=break_t:
-             #   break
+            #   break
+            #if counter%5000==0:
+                #print("cost after epoch " + str(epoch) + ": " + str(epoch_cost))
+                #saver.save(sess,logdir_m+"my_model.ckpt")
 
-            if counter%5000==0:
+            if counter%288==0:
                 print("cost after epoch " + str(epoch) + ": " + str(epoch_cost))
-                saver.save(sess,logdir_m+"my_model.ckpt")
+                #tf.summary.scalar('train_epoch_cost',epoch_cost)
+
+
+                while True:
+                    try:
+                        temp_cost_v = sess.run(loss,feed_dict={handle : validation_handle, decision:False})
+                        epoch_cost_v += temp_cost_v/36
+
+                        counter_v+=1
+
+                        if counter_v%36==0:
+                            print("val cost at epoch  " + str(epoch) + ": " + str(epoch_cost_v))
+                            epoch_cost_v = 0.0
+                            break
+
+                    except tf.errors.OutOfRangeError:
+                        #tf.summary.scalar('dev_epoch_cost',epoch_cost_v)
+                        break
+
                 epoch_cost =0.0
                 epoch+=1
+
+                s_t = sess.run(merge_sum,feed_dict={handle : training_handle, decision:False})
+                file_writer_t.add_summary(s_t,counter)
+                s_v = sess.run(merge_sum,feed_dict={handle : validation_handle, decision:False})
+                file_writer_t.add_summary(s_v,counter)
+
 
             counter+=1
             #print(coun)
@@ -646,5 +650,5 @@ for l in i:
     ops.reset_default_graph()
 '''
 
-model(learning_rate=.0005,num_epochs=200,mini_size=6,pt_out=100,break_t=1000,fil_conv=48,
+model(learning_rate=.0005,num_epochs=8,mini_size=6,pt_out=100,break_t=1000,fil_conv=48,
         kernel_ls=3,decode_l=2,pera_1=1,pera_2=1,imp_skip=26,batch=6)
