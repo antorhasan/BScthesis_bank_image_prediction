@@ -13,6 +13,9 @@ root_logdir = "tf_logs"
 logdir = "{}/run-{}/".format(root_logdir, now)
 root_logdir_m = "tf_models"
 logdir_m = "{}/run-{}/".format(root_logdir_m, now)
+root_logdir_v = "tf_logs_val"
+logdir_v = "{}/run-{}/".format(root_logdir_v, now)
+
 
 def _parse_function(example_proto):
     features = {
@@ -435,7 +438,7 @@ def cost(pixel_pre1,pixel_pre2,pixel_gt1,pixel_gt2,pera_1,pera_2):
         #loss2 = tf.losses.mean_squared_error(pixel_gt2,pixel_pre2)
 
         total_loss = (pera_1*loss1 + pera_2*loss2)/(pera_1+pera_2)
-
+        #loss_var = tf.Variable(0.0)
         tf.summary.scalar('loss',total_loss)
 
         return total_loss
@@ -452,6 +455,7 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
     tf.summary.scalar('kernel_sizes_lstm',kernel_ls)
     tf.summary.scalar('number_of_prediction',decode_l)
     tf.summary.scalar('batch',batch)
+
 
 
 
@@ -487,7 +491,7 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
     # validation_iterator = dataset_v.make_one_shot_iterator()
 
     training_iterator = dataset.make_initializable_iterator()
-    validation_iterator = dataset.make_initializable_iterator()
+    validation_iterator = dataset_v.make_initializable_iterator()
 
     #print(pix_gt.get_shape().as_list())
     #print(tf.shape(pix_gt))
@@ -526,26 +530,30 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
     out_pre,out_pre1 = decoder_block(out_5,out_6,two_pixel_5,two_pixel_4,two_pixel_3,two_pixel_2,two_pixel_1,two_pix,
                           skip_try="oka")
 
-    tf.summary.image("prediction1",out_pre,3)
-    tf.summary.image("prediction2",out_pre1,3)
+    pred1 = tf.summary.image("prediction1",out_pre,3)
+    pred2 = tf.summary.image("prediction2",out_pre1,3)
 
     #loss = cost(pixel_pre = out_pre , pixel_gt = pix_4)
 
     loss = cost(out_pre,out_pre1,pix_4,pix_5,pera_1,pera_2)
-
+    l1 = tf.summary.scalar('loss1',loss)
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate,name="adam").minimize(loss)
 
+    #loss_var = tf.Variable(0.0)
+    #tf.summary.scalar('new_loss',loss_var)
 
-
-    merge_sum = tf.summary.merge_all()
+    #merge_sum1 = tf.summary.merge_all()
+    #key1 = tf.GraphKeys.SUMMARIES
+    merge_sum = tf.summary.merge([pred1,pred2,l1])
     file_writer_t = tf.summary.FileWriter(logdir, tf.get_default_graph())
-    file_writer_v = tf.summary.FileWriter(logdir, tf.get_default_graph())
+    file_writer_v = tf.summary.FileWriter(logdir_v, tf.get_default_graph())
 
     saver = tf.train.Saver()
 
     init = tf.global_variables_initializer()
 
-    sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
+    #sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
+    sess = tf.Session()
 
 
     sess.run(init)
@@ -571,6 +579,8 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
 
     while True:
         try:
+            if counter%288==0:
+                tf.get_default_graph().clear_collection('total_accuracy')
             _ , temp_cost = sess.run([optimizer,loss],feed_dict={handle : training_handle, decision:True})
             mini_cost += temp_cost/pt_out
             epoch_cost += temp_cost/288
@@ -592,7 +602,11 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
             if counter%288==0:
                 print("cost after epoch " + str(epoch) + ": " + str(epoch_cost))
                 #tf.summary.scalar('train_epoch_cost',epoch_cost)
+                #s_t = sess.run(merge_sum,feed_dict={handle : training_handle, decision:True})
 
+                s_t = sess.run(merge_sum, feed_dict={handle : training_handle, decision:True})
+                file_writer_t.add_summary(s_t,counter)
+                file_writer_t.flush()
 
                 while True:
                     try:
@@ -604,19 +618,23 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
                         if counter_v%36==0:
                             print("val cost at epoch  " + str(epoch) + ": " + str(epoch_cost_v))
                             epoch_cost_v = 0.0
+                            s_v = sess.run(merge_sum, feed_dict={handle : validation_handle, decision:False})
+                            file_writer_v.add_summary(s_v,counter)
+                            file_writer_v.flush()
                             break
 
                     except tf.errors.OutOfRangeError:
                         #tf.summary.scalar('dev_epoch_cost',epoch_cost_v)
                         break
 
+
                 epoch_cost =0.0
                 epoch+=1
 
-                s_t = sess.run(merge_sum,feed_dict={handle : training_handle, decision:False})
-                file_writer_t.add_summary(s_t,counter)
-                s_v = sess.run(merge_sum,feed_dict={handle : validation_handle, decision:False})
-                file_writer_t.add_summary(s_v,counter)
+
+                #s_v = sess.run(merge_sum)
+                #s_v = sess.run(merge_sum,feed_dict={handle : validation_handle, decision:False})
+                #file_writer_v.add_summary(s_v,counter)
 
 
             counter+=1
@@ -650,5 +668,5 @@ for l in i:
     ops.reset_default_graph()
 '''
 
-model(learning_rate=.0005,num_epochs=8,mini_size=6,pt_out=100,break_t=1000,fil_conv=48,
+model(learning_rate=.0005,num_epochs=5,mini_size=6,pt_out=100,break_t=1000,fil_conv=48,
         kernel_ls=3,decode_l=2,pera_1=1,pera_2=1,imp_skip=26,batch=6)
