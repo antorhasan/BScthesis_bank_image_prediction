@@ -542,9 +542,10 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
     #loss_var = tf.Variable(0.0)
     #tf.summary.scalar('new_loss',loss_var)
 
-    #merge_sum1 = tf.summary.merge_all()
+    #merge_sum = tf.summary.merge_all()
+    merge_sum = tf.summary.merge(tf.get_collection(tf.GraphKeys.SUMMARIES,scope))
     #key1 = tf.GraphKeys.SUMMARIES
-    merge_sum = tf.summary.merge([pred1,pred2,l1])
+    #merge_sum = tf.summary.merge([pred1,pred2,l1])
     file_writer_t = tf.summary.FileWriter(logdir, tf.get_default_graph())
     file_writer_v = tf.summary.FileWriter(logdir_v, tf.get_default_graph())
 
@@ -579,8 +580,9 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
 
     while True:
         try:
-            if counter%288==0:
-                tf.get_default_graph().clear_collection('total_accuracy')
+            
+            #if counter%288==0:
+            #    tf.get_default_graph().clear_collection()
             _ , temp_cost = sess.run([optimizer,loss],feed_dict={handle : training_handle, decision:True})
             mini_cost += temp_cost/pt_out
             epoch_cost += temp_cost/288
@@ -610,6 +612,8 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
 
                 while True:
                     try:
+                        #if counter_v%36==0:
+                        #    tf.get_default_graph().clear_collection('total_accuracy')
                         temp_cost_v = sess.run(loss,feed_dict={handle : validation_handle, decision:False})
                         epoch_cost_v += temp_cost_v/36
 
