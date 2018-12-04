@@ -65,7 +65,8 @@ def conv_blc_lst(pixel,kernel_size,filter_numbers,stride,nonlinearity,conv_t):
         elif nonlinearity=="leaky_relu":
             up_pixel = tf.nn.leaky_relu(normalized_out, name="leaky_relu")
         elif nonlinearity=="none":
-            up_pixel = normalized_out
+            up_pixel = tf.nn.sigmoid(normalized_out, name="sigmoid")
+            # up_pixel = normalized_out
 
         tf.summary.histogram("weights", W)
         tf.summary.histogram("biases", B)
@@ -139,8 +140,14 @@ def encoder(pix,skip):
         with tf.variable_scope("conv5") as scope:
             pixel_5 = conv_block(pixel_4,[3,3],filter_numbers=48,stride=[1,2,2,1],nonlinearity=non_lin,conv_t="conv")
 
+        with tf.variable_scope("conv6") as scope:
+            pixel_6 = conv_block(pixel_5,[3,3],filter_numbers=48,stride=[1,2,2,1],nonlinearity=non_lin,conv_t="conv")
+
+        with tf.variable_scope("conv7") as scope:
+            pixel_7 = conv_block(pixel_6,[3,3],filter_numbers=64,stride=[1,1,1,1],nonlinearity=non_lin,conv_t="conv")
+
         if skip=="okay":
-            return pix,pixel_1,pixel_2,pixel_3,pixel_4,pixel_5
+            return pix,pixel_1,pixel_2,pixel_3,pixel_4,pixel_5,pixel_6,pixel_5
         elif skip=="nope" :
             return pixel_5
 
@@ -148,8 +155,13 @@ def concat(encode_pix,decode_pix):
     with tf.name_scope("concat") as scope:
         up_pixel = tf.concat([encode_pix, decode_pix], axis=3)
         return up_pixel
+def near_up_sampling(pixel, output_size):
+    with tf.name_scope("nearest_up") as scope:
+        up_pixel = tf.image.resize_nearest_neighbor(pixel, size=output_size, name="nearest_pixel_up")
+        return up_pixel
 
-def decoder_skip(pix_lstm,pix_5,pix_4,pix_3,pix_2,pix_1,pix,skip = "okay"):
+
+def decoder_skip(pix_lstm,pix_5,pix_4,pix_3,pix_2,pix_1,pix,skip = "nope"):
     with tf.variable_scope("decode_skip",reuse=tf.AUTO_REUSE) as scope:
 
         non_lin = "leaky_relu"
@@ -160,35 +172,37 @@ def decoder_skip(pix_lstm,pix_5,pix_4,pix_3,pix_2,pix_1,pix,skip = "okay"):
             pix_lstm = pix_lstm
 
         with tf.variable_scope("dconv1") as scope:
-            #near_pixel1 = near_up_sampling(pixel_in,output_size_in)
-            pixel_1 = conv_block(pix_lstm,[3,3],filter_numbers=64,stride=[1,2,2,1],nonlinearity=non_lin,conv_t="dconv")
+            near_pixel1 = near_up_sampling(pix_lstm,(pix_4.get_shape().as_list()[1],pix_4.get_shape().as_list()[2]))
+            pixel_1 = conv_block(near_pixel1,[3,3],filter_numbers=32,stride=[1,1,1,1],nonlinearity=non_lin,conv_t="dconv")
         #if skip=="okay":
         #    pixel_1 = concat(pix_4,pixel_1)
 
         with tf.variable_scope("dconv2") as scope:
-            pixel_2 = conv_block(pixel_1,[3,3],filter_numbers=32,stride=[1,2,2,1],nonlinearity=non_lin,conv_t="dconv")
+            near_pixel2 = near_up_sampling(pixel_1,(pix_3.get_shape().as_list()[1],pix_3.get_shape().as_list()[2]))
+            pixel_2 = conv_block(near_pixel2,[3,3],filter_numbers=16,stride=[1,1,1,1],nonlinearity=non_lin,conv_t="dconv")
+
         if skip=="okay":
             pixel_2 = concat(pix_3,pixel_2)
         elif skip=="nope":
             pixel_2 = pixel_2
 
         with tf.variable_scope("dconv3") as scope:
-            pixel_3 = conv_block(pixel_2,[3,3],filter_numbers=16,stride=[1,2,2,1],nonlinearity=non_lin,conv_t="dconv")
+            near_pixel3 = near_up_sampling(pixel_2,(pix_2.get_shape().as_list()[1],pix_2.get_shape().as_list()[2]))
+            pixel_3 = conv_block(near_pixel3,[3,3],filter_numbers=8,stride=[1,1,1,1],nonlinearity=non_lin,conv_t="dconv")
         #if skip=="okay":
         #    pixel_3 = concat(pix_2,pixel_3)
 
         with tf.variable_scope("dconv4") as scope:
-            pixel_4 = conv_block(pixel_3,[3,3],filter_numbers=8,stride=[1,2,2,1],nonlinearity=non_lin,conv_t="dconv")
+            near_pixel4 = near_up_sampling(pixel_3,(pix_1.get_shape().as_list()[1],pix_1.get_shape().as_list()[2]))
+            pixel_4 = conv_block(near_pixel4,[3,3],filter_numbers=4,stride=[1,1,1,1],nonlinearity=non_lin,conv_t="dconv")
         if skip=="okay":
             pixel_4 = concat(pix_1,pixel_4)
         elif skip=="nope":
             pixel_4 = pixel_4
 
         with tf.variable_scope("dconv5",reuse=tf.AUTO_REUSE) as scope:
-            pixel_5 = conv_blc_lst(pixel_4,[3,3],filter_numbers=1,stride=[1,2,2,1],nonlinearity="none",conv_t="dconv")
-
-
-
+            near_pixel4 = near_up_sampling(pixel_4,(pix.get_shape().as_list()[1],pix.get_shape().as_list()[2]))
+            pixel_5 = conv_blc_lst(near_pixel4,[1,1],filter_numbers=1,stride=[1,1,1,1],nonlinearity="none",conv_t="conv")
 
         return pixel_5
 
@@ -199,14 +213,19 @@ def decoder_norm(pix_lstm):
         non_lin = "leaky_relu"
 
         with tf.variable_scope("dconv1") as scope:
+
             pixel_1 = conv_block(pix_lstm,[3,3],filter_numbers=32,stride=[1,2,2,1],nonlinearity=non_lin,conv_t="dconv")
         with tf.variable_scope("dconv2") as scope:
+
             pixel_2 = conv_block(pixel_1,[3,3],filter_numbers=16,stride=[1,2,2,1],nonlinearity=non_lin,conv_t="dconv")
         with tf.variable_scope("dconv3") as scope:
+
             pixel_3 = conv_block(pixel_2,[3,3],filter_numbers=8,stride=[1,2,2,1],nonlinearity=non_lin,conv_t="dconv")
         with tf.variable_scope("dconv4") as scope:
+
             pixel_4 = conv_block(pixel_3,[3,3],filter_numbers=4,stride=[1,2,2,1],nonlinearity=non_lin,conv_t="dconv")
         with tf.variable_scope("dconv5") as scope:
+
             pixel_5 = conv_blc_lst(pixel_4,[3,3],filter_numbers=1,stride=[1,2,2,1],nonlinearity="none",conv_t="dconv")
             #pixel_5 = conv_block(pixel_4,[3,3],filter_numbers=1,stride=[1,2,2,1],nonlinearity="none",conv_t="dconv")
 
@@ -228,8 +247,8 @@ def encoder_block(pix_1,pix_2,pix_3,pix_4):
     #    out_1 = encoder(pix_1,skip="nope")
 
     with tf.name_scope("encode4") as scope:
-        two_pix,two_pixel_1,two_pixel_2,two_pixel_3,two_pixel_4,two_pixel_5 = encoder(pix_4,skip="okay")
-        out_4 = two_pixel_5
+        two_pix,two_pixel_1,two_pixel_2,two_pixel_3,two_pixel_4,two_pixel_5,two_pixel_6,two_pixel_7 = encoder(pix_4,skip="okay")
+        out_4 = two_pixel_7
 
     return out_1,out_2,out_3,out_4,two_pix,two_pixel_1,two_pixel_2,two_pixel_3,two_pixel_4,two_pixel_5
 
@@ -243,11 +262,11 @@ def decoder_block(pix_lstm,pix_lstm1,pix_5,pix_4,pix_3,pix_2,pix_1,pix,skip_try)
 
     if skip_try=="oka":
         with tf.name_scope("decode_1") as scope:
-            #out_1 = decoder_skip(pix_lstm,pix_5,pix_4,pix_3,pix_2,pix_1,pix,skip = "okay")
-            out_1 = decoder_norm(pix_lstm)
+            out_1 = decoder_skip(pix_lstm,pix_5,pix_4,pix_3,pix_2,pix_1,pix,skip = "nope")
+            # out_1 = decoder_norm(pix_lstm)
         with tf.name_scope("decode_2") as scope:
-            #out_2 = decoder_skip(pix_lstm1,pix_5,pix_4,pix_3,pix_2,pix_1,pix,skip = "okay")
-            out_2 = decoder_norm(pix_lstm1)
+            out_2 = decoder_skip(pix_lstm1,pix_5,pix_4,pix_3,pix_2,pix_1,pix,skip = "nope")
+            # out_2 = decoder_norm(pix_lstm1)
     return out_1,out_2
 
 
