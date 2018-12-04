@@ -472,12 +472,12 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
     dataset = dataset.batch(batch,drop_remainder=True)
     dataset = dataset.repeat(num_epochs)
 
-    dataset_v = tf.data.TFRecordDataset("/media/antor/Files/ML/tfrecord/sir_demo/dev.tfrecords")
-    dataset_v = dataset_v.map(_parse_function)
-    window = mini_size
-    dataset_v = dataset_v.apply(sliding.sliding_window_batch(window,stride=6))
-    dataset_v = dataset_v.batch(batch,drop_remainder=True)
-    dataset_v = dataset_v.repeat(num_epochs)
+    # dataset_v = tf.data.TFRecordDataset("/media/antor/Files/ML/tfrecord/sir_demo/dev.tfrecords")
+    # dataset_v = dataset_v.map(_parse_function)
+    # window = mini_size
+    # dataset_v = dataset_v.apply(sliding.sliding_window_batch(window,stride=6))
+    # dataset_v = dataset_v.batch(batch,drop_remainder=True)
+    # dataset_v = dataset_v.repeat(num_epochs)
 
     iterator = dataset.make_initializable_iterator(shared_name="iter")
     #handle = tf.placeholder(tf.string, shape=[])
@@ -537,7 +537,7 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
     #loss = cost(pixel_pre = out_pre , pixel_gt = pix_4)
 
     loss = cost(out_pre,out_pre1,pix_4,pix_5,pera_1,pera_2)
-    l1 = tf.summary.scalar('loss1',loss)
+    # l1 = tf.summary.scalar('loss1',loss)
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate,name="adam").minimize(loss)
 
     #loss_var = tf.Variable(0.0)
@@ -671,5 +671,5 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
 #     ops.reset_default_graph()
 
 
-model(learning_rate=.0005,num_epochs=5,mini_size=6,pt_out=100,break_t=1000,fil_conv=48,
+model(learning_rate=.00005,num_epochs=5,mini_size=6,pt_out=100,break_t=1000,fil_conv=48,
         kernel_ls=3,decode_l=2,pera_1=1,pera_2=1,imp_skip=26,batch=6)
