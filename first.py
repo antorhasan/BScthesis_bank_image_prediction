@@ -160,6 +160,7 @@ def decoder_skip(pix_lstm,pix_5,pix_4,pix_3,pix_2,pix_1,pix,skip = "okay"):
             pix_lstm = pix_lstm
 
         with tf.variable_scope("dconv1") as scope:
+            # near_pixel1 = near_up_sampling(pixel_in,output_size_in)
             pixel_1 = conv_block(pix_lstm,[3,3],filter_numbers=64,stride=[1,2,2,1],nonlinearity=non_lin,conv_t="dconv")
         #if skip=="okay":
         #    pixel_1 = concat(pix_4,pixel_1)
@@ -610,6 +611,8 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
                 # merge_sum = tf.summary.merge_all()
                 s_t = sess.run(merge_sum)
                 file_writer_t.add_summary(s_t,counter)
+                epoch_cost = 0.0
+                epoch += 1
                 # file_writer_t.flush()
                 # epoch_cost_v = 0.0
                 # counter_v = 1
@@ -671,5 +674,5 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
 #     ops.reset_default_graph()
 
 
-model(learning_rate=.00005,num_epochs=5,mini_size=6,pt_out=100,break_t=1000,fil_conv=48,
+model(learning_rate=.0005,num_epochs=30,mini_size=6,pt_out=100,break_t=1000,fil_conv=48,
         kernel_ls=3,decode_l=2,pera_1=1,pera_2=1,imp_skip=26,batch=6)
