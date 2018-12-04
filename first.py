@@ -525,7 +525,7 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
     sess.run(init)
     #saver.restore(sess,('/media/antor/Files/main_projects/gitlab/unet_check/tf_models/run-20181104123103/my_model.ckpt'))
 
-    sess.run(iterator.initializer,feed_dict={filenames:"/media/antor/Files/ML/Papers/tfrecord/train_rnn_d.tfrecords"})
+    sess.run(iterator.initializer,feed_dict={filenames:"/media/antor/Files/ML/tfrecord/sir_demo/train.tfrecords"})
 
     mini_cost = 0.0
     counter = 1
@@ -595,22 +595,22 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
             '''
             _ , temp_cost = sess.run([optimizer,loss])
             mini_cost += temp_cost/pt_out
-            epoch_cost += temp_cost/5000
+            epoch_cost += temp_cost/288
 
-            if counter%pt_out==0:
-                print("mini batch cost of batch " + str(counter) + " is : " + str(mini_cost))
-                mini_cost =0.0
+            # if counter%pt_out==0:
+            #     print("mini batch cost of batch " + str(counter) + " is : " + str(mini_cost))
+            #     mini_cost =0.0
 
 
 
-            if counter%100== 0:
+            if counter%288== 0:
                 s = sess.run(merge_sum)
                 file_writer.add_summary(s,counter)
 
             #if counter*mini_size>=break_t:
              #   break
 
-            if counter%5000==0:
+            if counter%288==0:
                 print("cost after epoch " + str(epoch) + ": " + str(epoch_cost))
                 #saver.save(sess,logdir_m+"my_model.ckpt")
                 epoch_cost =0.0
@@ -649,5 +649,5 @@ for l in i:
     ops.reset_default_graph()
 '''
 
-model(learning_rate=.0005,num_epochs=1,mini_size=6,pt_out=100,break_t=1000,fil_conv=48,kernel_ls=3,decode_l=2,
+model(learning_rate=.0005,num_epochs=5,mini_size=6,pt_out=100,break_t=1000,fil_conv=48,kernel_ls=3,decode_l=2,
        pera_1=1,pera_2=1,imp_skip=26,batch=6)

@@ -1,3 +1,4 @@
 .ipynb_checkpoints/
 tf_logs/
 tf_models/
+tf_logs_val/
