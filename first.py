@@ -543,7 +543,7 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
     #tf.summary.scalar('new_loss',loss_var)
 
     #merge_sum = tf.summary.merge_all()
-    merge_sum = tf.summary.merge(tf.get_collection(tf.GraphKeys.SUMMARIES,scope))
+    # merge_sum = tf.summary.merge(tf.get_collection(tf.GraphKeys.SUMMARIES,scope))
     #key1 = tf.GraphKeys.SUMMARIES
     #merge_sum = tf.summary.merge([pred1,pred2,l1])
     file_writer_t = tf.summary.FileWriter(logdir, tf.get_default_graph())
@@ -569,18 +569,17 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
     validation_handle = sess.run(validation_iterator.string_handle())
 
 
-
     mini_cost = 0.0
     counter = 1
     coun = 1
     epoch_cost = 0.0
     epoch = 1
-    epoch_cost_v = 0.0
-    counter_v = 0
+    # epoch_cost_v = 0.0
+    # counter_v = 0
 
     while True:
         try:
-            
+
             #if counter%288==0:
             #    tf.get_default_graph().clear_collection()
             _ , temp_cost = sess.run([optimizer,loss],feed_dict={handle : training_handle, decision:True})
@@ -606,9 +605,13 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
                 #tf.summary.scalar('train_epoch_cost',epoch_cost)
                 #s_t = sess.run(merge_sum,feed_dict={handle : training_handle, decision:True})
 
+                #s_t = sess.run(merge_sum, feed_dict={handle : training_handle, decision:True})
+                merge_sum = tf.summary.merge_all()
                 s_t = sess.run(merge_sum, feed_dict={handle : training_handle, decision:True})
                 file_writer_t.add_summary(s_t,counter)
-                file_writer_t.flush()
+                #file_writer_t.flush()
+                epoch_cost_v = 0.0
+                counter_v = 1
 
                 while True:
                     try:
@@ -617,24 +620,19 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
                         temp_cost_v = sess.run(loss,feed_dict={handle : validation_handle, decision:False})
                         epoch_cost_v += temp_cost_v/36
 
-                        counter_v+=1
+
 
                         if counter_v%36==0:
                             print("val cost at epoch  " + str(epoch) + ": " + str(epoch_cost_v))
-                            epoch_cost_v = 0.0
-                            s_v = sess.run(merge_sum, feed_dict={handle : validation_handle, decision:False})
+                            merge_sum_v = tf.summary.merge_all()
+                            s_v = sess.run(merge_sum_v, feed_dict={handle : validation_handle, decision:False})
                             file_writer_v.add_summary(s_v,counter)
-                            file_writer_v.flush()
+                            # file_writer_v.flush()
                             break
-
+                        counter_v+=1
                     except tf.errors.OutOfRangeError:
                         #tf.summary.scalar('dev_epoch_cost',epoch_cost_v)
                         break
-
-
-                epoch_cost =0.0
-                epoch+=1
-
 
                 #s_v = sess.run(merge_sum)
                 #s_v = sess.run(merge_sum,feed_dict={handle : validation_handle, decision:False})
@@ -655,22 +653,22 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
 
 
 #import numpy as np
-'''from tensorflow.python.framework import ops
-f = np.random.uniform(np.log10(.001),np.log10(.00001),6)
-print(f)
-i = 10**f
+# from tensorflow.python.framework import ops
+# f = np.random.uniform(np.log10(.001),np.log10(.00001),6)
+# print(f)
+# i = 10**f
+#
+# print(i)
+#
+# for l in i:
+#
+#     #print(k)
+#     print(l)
+#
+#     model(learning_rate=l,num_epochs=3,mini_size=6,pt_out=200,break_t=1000,fil_conv=32,kernel_ls=3,decode_l=2,
+#        pera_1=1,pera_2=1,imp_skip=26,batch=6)
+#     ops.reset_default_graph()
 
-print(i)
 
-for l in i:
-
-    #print(k)
-    print(l)
-
-    model(learning_rate=l,num_epochs=3,mini_size=6,pt_out=200,break_t=1000,fil_conv=32,kernel_ls=3,decode_l=2,
-       pera_1=1,pera_2=1,imp_skip=26,batch=6)
-    ops.reset_default_graph()
-'''
-
-model(learning_rate=.0005,num_epochs=5,mini_size=6,pt_out=100,break_t=1000,fil_conv=48,
+model(learning_rate=.0005,num_epochs=1,mini_size=6,pt_out=100,break_t=1000,fil_conv=48,
         kernel_ls=3,decode_l=2,pera_1=1,pera_2=1,imp_skip=26,batch=6)
