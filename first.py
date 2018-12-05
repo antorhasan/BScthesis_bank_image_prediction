@@ -177,7 +177,8 @@ def decoder_skip(pix_lstm,pix_7,pix_6,pix_5,pix_4,pix_3,pix_2,pix_1,pix,skip = "
 
         with tf.variable_scope("dconv1") as scope:
             near_pixel1 = near_up_sampling(pix_lstm,(pix_6.get_shape().as_list()[1],pix_6.get_shape().as_list()[2]))
-            pixel_1 = conv_block(near_pixel1,[3,3],filter_numbers=48,stride=[1,1,1,1],nonlinearity=non_lin,conv_t="dconv")
+            con_p = concat(pix_6,near_pixel1)
+            pixel_1 = conv_block(con_p,[3,3],filter_numbers=48,stride=[1,1,1,1],nonlinearity=non_lin,conv_t="dconv")
         #if skip=="okay":
         #    pixel_1 = concat(pix_4,pixel_1)
 
@@ -199,6 +200,7 @@ def decoder_skip(pix_lstm,pix_7,pix_6,pix_5,pix_4,pix_3,pix_2,pix_1,pix,skip = "
         with tf.variable_scope("dconv4") as scope:
             near_pixel4 = near_up_sampling(pixel_3,(pix_3.get_shape().as_list()[1],pix_3.get_shape().as_list()[2]))
             pixel_4 = conv_block(near_pixel4,[3,3],filter_numbers=16,stride=[1,1,1,1],nonlinearity=non_lin,conv_t="dconv")
+
         if skip=="okay":
             pixel_4 = concat(pix_1,pixel_4)
         elif skip=="nope":
