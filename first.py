@@ -151,9 +151,9 @@ def encoder(pix,skip):
             pixel_7 = conv_block(pixel_6,[3,3],filter_numbers=64,stride=[1,1,1,1],nonlinearity=non_lin,conv_t="conv")
 
         if skip=="okay":
-            return pix,pixel_1,pixel_2,pixel_3,pixel_4,pixel_5,pixel_6,pixel_7
+            return pix,pixel_1,pixel_2,pixel_3,pixel_4,pixel_5,pixel_6,pixel_5
         elif skip=="nope" :
-            return pixel_7
+            return pixel_5
 
 def concat(encode_pix,decode_pix):
     with tf.name_scope("concat") as scope:
@@ -165,34 +165,42 @@ def near_up_sampling(pixel, output_size):
         return up_pixel
 
 
-def decoder_skip(pix_lstm,pix_7,pix_6,pix_5,pix_4,pix_3,pix_2,pix_1,pix,skip = "nope"):
+def decoder_skip(pix_lstm,pix_7,pix_6,pix_5,pix_4,pix_3,pix_2,pix_1,pix):
+    skip = "nope"
     with tf.variable_scope("decode_skip",reuse=tf.AUTO_REUSE) as scope:
 
         non_lin = "leaky_relu"
 
-        if skip=="okay":
-            pix_lstm = concat(pix_5,pix_lstm)
-        elif skip=="nope":
-            pix_lstm = pix_lstm
+        # if skip=="okay":
+        #     pix_lstm = concat(pix_5,pix_lstm)
+        # elif skip=="nope":
+        #     pix_lstm = pix_lstm
 
-        with tf.variable_scope("dconv1") as scope:
-            near_pixel1 = near_up_sampling(pix_lstm,(pix_6.get_shape().as_list()[1],pix_6.get_shape().as_list()[2]))
-            con_p = concat(pix_6,near_pixel1)
-            pixel_1 = conv_block(con_p,[3,3],filter_numbers=48,stride=[1,1,1,1],nonlinearity=non_lin,conv_t="dconv")
-        #if skip=="okay":
-        #    pixel_1 = concat(pix_4,pixel_1)
+        # with tf.variable_scope("dconv1") as scope:
+        #     near_pixel1 = near_up_sampling(pix_lstm,(pix_6.get_shape().as_list()[1],pix_6.get_shape().as_list()[2]))
+        #     if skip=="okay":
+        #         near_pixel1 = concat(pix_6,near_pixel1)
+        #     elif skip=="nope":
+        #         near_pixel1 = near_pixel1
+        #     pixel_1 = conv_block(near_pixel1,[3,3],filter_numbers=48,stride=[1,1,1,1],nonlinearity=non_lin,conv_t="dconv")
+        # #if skip=="okay":
+        # #    pixel_1 = concat(pix_4,pixel_1)
+        #
+        # with tf.variable_scope("dconv2") as scope:
+        #     near_pixel2 = near_up_sampling(pixel_1,(pix_5.get_shape().as_list()[1],pix_5.get_shape().as_list()[2]))
+        #     pixel_2 = conv_block(near_pixel2,[3,3],filter_numbers=48,stride=[1,1,1,1],nonlinearity=non_lin,conv_t="dconv")
 
-        with tf.variable_scope("dconv2") as scope:
-            near_pixel2 = near_up_sampling(pixel_1,(pix_5.get_shape().as_list()[1],pix_5.get_shape().as_list()[2]))
-            pixel_2 = conv_block(near_pixel2,[3,3],filter_numbers=48,stride=[1,1,1,1],nonlinearity=non_lin,conv_t="dconv")
-
-        if skip=="okay":
-            pixel_2 = concat(pix_3,pixel_2)
-        elif skip=="nope":
-            pixel_2 = pixel_2
+        # if skip=="okay":
+        #     pixel_2 = concat(pix_3,pixel_2)
+        # elif skip=="nope":
+        #     pixel_2 = pixel_2
 
         with tf.variable_scope("dconv3") as scope:
-            near_pixel3 = near_up_sampling(pixel_2,(pix_4.get_shape().as_list()[1],pix_4.get_shape().as_list()[2]))
+            near_pixel3 = near_up_sampling(pix_lstm,(pix_4.get_shape().as_list()[1],pix_4.get_shape().as_list()[2]))
+            if skip=="okay":
+                near_pixel3 = concat(pix_4,near_pixel3)
+            elif skip=="nope":
+                near_pixel3 = near_pixel3
             pixel_3 = conv_block(near_pixel3,[3,3],filter_numbers=32,stride=[1,1,1,1],nonlinearity=non_lin,conv_t="dconv")
         #if skip=="okay":
         #    pixel_3 = concat(pix_2,pixel_3)
@@ -201,13 +209,17 @@ def decoder_skip(pix_lstm,pix_7,pix_6,pix_5,pix_4,pix_3,pix_2,pix_1,pix,skip = "
             near_pixel4 = near_up_sampling(pixel_3,(pix_3.get_shape().as_list()[1],pix_3.get_shape().as_list()[2]))
             pixel_4 = conv_block(near_pixel4,[3,3],filter_numbers=16,stride=[1,1,1,1],nonlinearity=non_lin,conv_t="dconv")
 
-        if skip=="okay":
-            pixel_4 = concat(pix_1,pixel_4)
-        elif skip=="nope":
-            pixel_4 = pixel_4
+        # if skip=="okay":
+        #     pixel_4 = concat(pix_1,pixel_4)
+        # elif skip=="nope":
+        #     pixel_4 = pixel_4
 
         with tf.variable_scope("dconv5") as scope:
             near_pixel5 = near_up_sampling(pixel_4,(pix_2.get_shape().as_list()[1],pix_2.get_shape().as_list()[2]))
+            if skip=="okay":
+                near_pixel5 = concat(pix_2,near_pixel5)
+            elif skip=="nope":
+                near_pixel5 = near_pixel5
             pixel_5 = conv_block(near_pixel5,[3,3],filter_numbers=8,stride=[1,1,1,1],nonlinearity=non_lin,conv_t="dconv")
 
         with tf.variable_scope("dconv6") as scope:
@@ -276,10 +288,10 @@ def decoder_block(pix_lstm,pix_lstm1,pix_7,pix_6,pix_5,pix_4,pix_3,pix_2,pix_1,p
 
     if skip_try=="oka":
         with tf.name_scope("decode_1") as scope:
-            out_1 = decoder_skip(pix_lstm,pix_7,pix_6,pix_5,pix_4,pix_3,pix_2,pix_1,pix,skip = "nope")
+            out_1 = decoder_skip(pix_lstm,pix_7,pix_6,pix_5,pix_4,pix_3,pix_2,pix_1,pix)
             # out_1 = decoder_norm(pix_lstm)
         with tf.name_scope("decode_2") as scope:
-            out_2 = decoder_skip(pix_lstm1,pix_7,pix_6,pix_5,pix_4,pix_3,pix_2,pix_1,pix,skip = "nope")
+            out_2 = decoder_skip(pix_lstm1,pix_7,pix_6,pix_5,pix_4,pix_3,pix_2,pix_1,pix)
             # out_2 = decoder_norm(pix_lstm1)
     return out_1,out_2
 
@@ -707,5 +719,5 @@ def model(learning_rate,num_epochs,mini_size,pt_out,break_t,fil_conv,kernel_ls,d
 #     ops.reset_default_graph()
 
 
-model(learning_rate=.0005,num_epochs=30,mini_size=6,pt_out=100,break_t=1000,fil_conv=48,
+model(learning_rate=.0005,num_epochs=100,mini_size=6,pt_out=100,break_t=1000,fil_conv=48,
         kernel_ls=3,decode_l=2,pera_1=1,pera_2=1,imp_skip=26,batch=6)
