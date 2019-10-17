@@ -38,7 +38,7 @@
   <b>Predicted Image Two Years into the Future</b><br>
 </p>
 
-
+<br>
 
 **Conclusions :** The resulting riverbank planform prediction model could easily be used for any reach of the river. It can also be used for other rivers given proper data preprocessing is carried out as most learned features are universal for all rivers. The study also suggests that spatiotemporal features of natural phenomena related to rivers can be learned by neural networks.
 
