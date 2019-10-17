@@ -6,7 +6,7 @@
 
 **Methods :** For the Jamuna River planform prediction task Seq2Seq LSTM based Convolutional Autoencoder neural network architecture was explored. The effects of adding skip connections from Conv encoder activation maps to Conv decoder activation maps were also looked into. The resulting prediction model could take four historical 256×256 resolution greyscale NBRT Landsat images taken over the Jamuna River, with an interval of one year between each image, as inputs and predict the river planform images for the next two years with an interval of one year between the two.
 
-
+<br>
 
 **Results :**
 
@@ -22,8 +22,8 @@
   <b>Predicted Image One Year into the Future</b><br>
 </p>
 
-
-
+<br>
+<br>
 
 
 ![alt text](https://github.com/antorhasan/BScthesis_bank_image_prediction/blob/master/pngs/org2.png)
