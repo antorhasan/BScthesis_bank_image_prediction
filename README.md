@@ -1,4 +1,4 @@
-# Prediction of Future Jamuna River Bank Planform Images from Landsat Data using Encoder-Decoder Conv-LSTM 
+# UNDERGRADUATE THESIS :Prediction of Future Jamuna River Bank Planform Images from Landsat Data using Encoder-Decoder Conv-LSTM 
 
 **Objective :** Jamuna River goes through mild to drastic changes resulting in bank erosion and deposition in various parts of it’s reach to gain stability. The most common methods of predicting riverbank line shifting requires a lot of data including water level, discharge, bathymetry data, satellite data, bankline data, sediment data. In most prediction methods the availability of the current data is not ensured, the predicted results do not capture the total non-linearity of the problem and the further predictions are made into the future the more inaccurate they become. In this thesis, an attempt has been made to formulate the riverbank line prediction as a spatiotemporal sequence forecasting problem in which both the input and the predicted target are spatiotemporal sequences. 
 
